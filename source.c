@@ -93,9 +93,6 @@ int main() {
     
     printf("Час виконання %f\n", after - before);
 
-    printf("\nМатриця зв'язаності:\n");
-    printMatrix(connectivityMatrix, N);
-
     freeMatrix(connectivityMatrix, N);
 
     return 0;
