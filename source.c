@@ -1,24 +1,38 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <omp.h>
+#include <time.h>
+#include <math.h>
 
-int isNeighbor(int i, int j, int R, int gridSize) {
-    int dx = abs(i % gridSize - j % gridSize);
-    int dy = abs((i / gridSize) % gridSize - (j / gridSize) % gridSize);
-    int dz = abs((i / (gridSize * gridSize)) % gridSize - (j / (gridSize * gridSize)) % gridSize);
-
-    return (dx <= R / 2) && (dy <= R / 2) && (dz <= R / 2);
+// Функція для обчислення Евклідової відстані між двома точками у тривимірному просторі
+double calculateDistance(int x1, int y1, int z1, int x2, int y2, int z2) {
+    int dx = abs(x1 - x2);
+    int dy = abs(y1 - y2);
+    int dz = abs(z1 - z2);
+    return sqrt(dx*dx + dy*dy + dz*dz);
 }
 
-int** generateConnectivityMatrix(int N, int R) {
-    int gridSize = N / 3; // Довжина сторони кубічної сітки
+// Функція для генерації матриці зв'язаності
+int** generateConnectivityMatrix(int N, int R, int randomSeed) {
+    int gridSize = cbrt(N); // Довжина сторони кубічної сітки
     int** matrix = (int**)malloc(N * sizeof(int*));
 
-    #pragma omp parallel for
+    // Генерація випадкових координат нейронів
+    srand(randomSeed);
+    int* neuronX = (int*)malloc(N * sizeof(int));
+    int* neuronY = (int*)malloc(N * sizeof(int));
+    int* neuronZ = (int*)malloc(N * sizeof(int));
+
+    for (int i = 0; i < N; i++) {
+        neuronX[i] = rand() % gridSize;
+        neuronY[i] = rand() % gridSize;
+        neuronZ[i] = rand() % gridSize;
+    }
+
+    // Генерація матриці зв'язаності
     for (int i = 0; i < N; i++) {
         matrix[i] = (int*)malloc(N * sizeof(int));
         for (int j = 0; j < N; j++) {
-            if (isNeighbor(i, j, R, gridSize)) {
+            if (calculateDistance(neuronX[i], neuronY[i], neuronZ[i], neuronX[j], neuronY[j], neuronZ[j]) <= R) {
                 matrix[i][j] = 1;
             } else {
                 matrix[i][j] = 0;
@@ -26,9 +40,14 @@ int** generateConnectivityMatrix(int N, int R) {
         }
     }
 
+    free(neuronX);
+    free(neuronY);
+    free(neuronZ);
+
     return matrix;
 }
 
+// Функція для виведення матриці на екран
 void printMatrix(int** matrix, int N) {
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
@@ -38,6 +57,7 @@ void printMatrix(int** matrix, int N) {
     }
 }
 
+// Функція для звільнення пам'яті, виділеної під матрицю
 void freeMatrix(int** matrix, int N) {
     for (int i = 0; i < N; i++) {
         free(matrix[i]);
@@ -46,27 +66,20 @@ void freeMatrix(int** matrix, int N) {
 }
 
 int main() {
-    int N, R, threads;
+    int N, R, randomSeed;
 
     printf("Введіть кількість нейронів (N): ");
     scanf("%d", &N);
 
-    printf("Введіть відстань зв'язку (R): ");
+    printf("Введіть радіус зв'язності (R): ");
     scanf("%d", &R);
 
-    printf("Введіть кількість потоків: ");
-    scanf("%d", &threads);
+    printf("Введіть значення randomSeed (0 для випадкових чисел, інакше для однакових чисел): ");
+    scanf("%d", &randomSeed);
 
-    omp_set_num_threads(threads);
-    double before = omp_get_wtime();
+    int** connectivityMatrix = generateConnectivityMatrix(N, R, randomSeed);
 
-    int** connectivityMatrix = generateConnectivityMatrix(N, R);
-
-    double after = omp_get_wtime();
-
-    printf("Час виконання: %f\n", after - before);
-
-    printf("Матриця зв'язаності:\n");
+    printf("\nМатриця зв'язаності:\n");
     printMatrix(connectivityMatrix, N);
 
     freeMatrix(connectivityMatrix, N);
