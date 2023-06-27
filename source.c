@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+#include <omp.h>
 
 // Функція для обчислення Евклідової відстані між двома точками у тривимірному просторі
 double calculateDistance(int x1, int y1, int z1, int x2, int y2, int z2) {
@@ -22,6 +23,7 @@ int** generateConnectivityMatrix(int N, int R, int randomSeed) {
     int* neuronY = (int*)malloc(N * sizeof(int));
     int* neuronZ = (int*)malloc(N * sizeof(int));
 
+    #pragma omp parallel for
     for (int i = 0; i < N; i++) {
         neuronX[i] = rand() % gridSize;
         neuronY[i] = rand() % gridSize;
@@ -29,6 +31,7 @@ int** generateConnectivityMatrix(int N, int R, int randomSeed) {
     }
 
     // Генерація матриці зв'язаності
+    #pragma omp parallel for
     for (int i = 0; i < N; i++) {
         matrix[i] = (int*)malloc(N * sizeof(int));
         for (int j = 0; j < N; j++) {
@@ -66,7 +69,7 @@ void freeMatrix(int** matrix, int N) {
 }
 
 int main() {
-    int N, R, randomSeed;
+    int N, R, randomSeed, threads;
 
     printf("Введіть кількість нейронів (N): ");
     scanf("%d", &N);
@@ -77,7 +80,18 @@ int main() {
     printf("Введіть значення randomSeed (0 для випадкових чисел, інакше для однакових чисел): ");
     scanf("%d", &randomSeed);
 
+    printf("Введіть кількість потоків, що буде використана: ");
+    scanf("%d", &threads);
+
+    omp_set_num_threads(threads);
+
+    double before = omp_get_wtime();
+
     int** connectivityMatrix = generateConnectivityMatrix(N, R, randomSeed);
+
+    double after = omp_get_wtime();
+    
+    printf("Час виконання %f\n", after - before);
 
     printf("\nМатриця зв'язаності:\n");
     printMatrix(connectivityMatrix, N);
